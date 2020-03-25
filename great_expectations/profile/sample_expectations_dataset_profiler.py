@@ -302,3 +302,7 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
         }
 
         return expectation_suite
+
+    @classmethod
+    def _build_suite(cls, dataset, columns_to_create_expectations_for):
+        raise NotImplementedError
