@@ -77,7 +77,7 @@ if __name__ == '__main__':
     # TODO I'm not sure this should be a profiler.
     # API might look like:
     builder = SweetSuiteBuilder()
-    builder.build_suite(
+    suite = builder.build_suite(
         suite="my_new_suite",
         batch_kwargs={"datasource": "foo", "table": "users"},
         columns=["id", "country", "region", "other", "interesting", "columns"]

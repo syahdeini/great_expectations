@@ -1,8 +1,8 @@
 import json
 import os
+
 from collections import OrderedDict
 
-import pytest
 from six import PY2
 
 import great_expectations as ge
@@ -11,22 +11,6 @@ from great_expectations.datasource import PandasDatasource
 from great_expectations.profile.sample_expectations_dataset_profiler import \
     SampleExpectationsDatasetProfiler
 from tests.test_utils import expectationSuiteValidationResultSchema
-
-
-@pytest.fixture()
-def not_empty_datacontext(empty_data_context, filesystem_csv_2):
-    empty_data_context.add_datasource(
-        "rad_datasource",
-        module_name="great_expectations.datasource",
-        class_name="PandasDatasource",
-        generators={
-            "subdir_reader": {
-                "class_name": "SubdirReaderBatchKwargsGenerator",
-                "base_directory": str(filesystem_csv_2),
-            }
-        },
-    )
-    return empty_data_context
 
 
 def test__find_next_low_card_column(non_numeric_low_card_dataset, non_numeric_high_card_dataset):
@@ -314,8 +298,8 @@ def test__create_expectations_for_datetime_column(datetime_dataset):
     }
 
 
-def test_SampleExpectationsDatasetProfiler_with_context(not_empty_datacontext):
-    context = not_empty_datacontext
+def test_SampleExpectationsDatasetProfiler_with_context(filesystem_csv_data_context):
+    context = filesystem_csv_data_context
 
     context.create_expectation_suite("default")
     datasource = context.datasources["rad_datasource"]
@@ -373,12 +357,12 @@ def test_SampleExpectationsDatasetProfiler_with_context(not_empty_datacontext):
     assert set(expectation_types) == expected_expectation_types
 
 
-def test_context_profiler(not_empty_datacontext):
+def test_context_profiler(filesystem_csv_data_context):
     """
     This just validates that it's possible to profile using the datasource hook,
     and have validation results available in the DataContext
     """
-    context = not_empty_datacontext
+    context = filesystem_csv_data_context
 
     assert isinstance(context.datasources["rad_datasource"], PandasDatasource)
     assert context.list_expectation_suites() == []

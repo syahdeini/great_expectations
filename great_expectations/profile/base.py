@@ -74,6 +74,7 @@ class DatasetProfiler(DataAssetProfiler):
 
     @classmethod
     def build_suite(cls, data_asset, columns=None, run_id=None):
+        # TODO factor this down since it's a copy of profile with a single different method
         if not cls.validate(data_asset):
             raise GreatExpectationsError("Invalid data_asset for profiler; aborting")
 
