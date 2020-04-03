@@ -18,8 +18,11 @@ class SuiteBuilderProfiler(SampleExpectationsDatasetProfiler):
         dataset_columns = dataset.get_table_columns()
 
         column_cache = {}
+        columns_to_create_expectations_for = None
         # TODO error handling on this config dict
-        columns_to_create_expectations_for = configuration.get("columns", None)
+        if configuration:
+            columns_to_create_expectations_for = configuration.get("columns", None)
+
         if not columns_to_create_expectations_for:
             columns_to_create_expectations_for = dataset_columns
 

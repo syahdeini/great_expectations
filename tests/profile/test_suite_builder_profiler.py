@@ -1,11 +1,15 @@
 import json
 import os
-from collections import OrderedDict
+from collections import OrderedDict, Hashable
 
 import pytest
+from numpy import Infinity
 
 import great_expectations as ge
+from great_expectations.core import ExpectationSuite
+from great_expectations.data_asset import DataAsset
 from great_expectations.data_context.util import file_relative_path
+from great_expectations.dataset import Dataset
 from great_expectations.datasource import PandasDatasource
 from great_expectations.profile.suite_builder_profiler import SuiteBuilderProfiler
 from tests.test_utils import expectationSuiteValidationResultSchema
@@ -114,6 +118,331 @@ from tests.test_utils import expectationSuiteValidationResultSchema
 #                                   'expect_column_quantile_values_to_be_between'}
 #
 #     assert set(expectation_types) == expected_expectation_types
+
+def group_expectations_by_column(expectation_suite):
+    columns = {}
+
+    for expectation in expectation_suite.expectations:
+        if "column" in expectation.kwargs and isinstance(expectation.kwargs["column"], Hashable):
+            column = expectation.kwargs["column"]
+        else:
+            column = "_nocolumn"
+        if column not in columns:
+            columns[column] = []
+        columns[column].append(expectation)
+
+    return columns
+
+
+def test_SuiteBuilderProfiler_uses_all_columns_if_no_configuration_on_pandas(
+    pandas_dataset,
+):
+    observed_suite, evrs = SuiteBuilderProfiler().profile(pandas_dataset)
+    assert isinstance(observed_suite, ExpectationSuite)
+
+    expected = ExpectationSuite(
+        "default",
+        data_asset_type="Dataset",
+        expectations=[
+            {
+                "kwargs": {"column": "infinities"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_to_exist",
+            },
+            {
+                "kwargs": {"column": "nulls"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_to_exist",
+            },
+            {
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_to_exist",
+            },
+            {
+                "kwargs": {"min_value": 6, "max_value": 7},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_table_row_count_to_be_between",
+            },
+            {
+                "kwargs": {"value": 3},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_table_column_count_to_equal",
+            },
+            {
+                "kwargs": {"column_list": ["infinities", "nulls", "naturals"]},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_table_columns_to_match_ordered_list",
+            },
+            {
+                "kwargs": {"column": "infinities"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_be_unique",
+            },
+            {
+                "kwargs": {"column": "infinities"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_not_be_null",
+            },
+            {
+                "kwargs": {
+                    "column": "infinities",
+                    "min_value": -Infinity,
+                    "max_value": -Infinity,
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_min_to_be_between",
+            },
+            {
+                "kwargs": {
+                    "column": "infinities",
+                    "min_value": Infinity,
+                    "max_value": Infinity,
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_max_to_be_between",
+            },
+            {
+                "kwargs": {"column": "infinities", "min_value": -1, "max_value": 1},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_mean_to_be_between",
+            },
+            {
+                "kwargs": {"column": "infinities", "min_value": -1.0, "max_value": 1.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_median_to_be_between",
+            },
+            {
+                "kwargs": {
+                    "column": "infinities",
+                    "quantile_ranges": {
+                        "quantiles": [0.05, 0.25, 0.5, 0.75, 0.95],
+                        "value_ranges": [
+                            [-Infinity, -Infinity],
+                            [-4.141592653589793, -2.141592653589793],
+                            [-1.0, 1.0],
+                            [2.141592653589793, 4.141592653589793],
+                            [Infinity, Infinity],
+                        ],
+                    },
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_quantile_values_to_be_between",
+            },
+            {
+                "kwargs": {"column": "nulls"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_be_unique",
+            },
+            {
+                "kwargs": {"column": "nulls", "mostly": 0.4714285714285715},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_not_be_null",
+            },
+            {
+                "kwargs": {"column": "nulls", "min_value": -1.0, "max_value": 1.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_min_to_be_between",
+            },
+            {
+                "kwargs": {"column": "nulls", "min_value": 2.3, "max_value": 4.3},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_max_to_be_between",
+            },
+            {
+                "kwargs": {
+                    "column": "nulls",
+                    "min_value": 0.6499999999999999,
+                    "max_value": 2.65,
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_mean_to_be_between",
+            },
+            {
+                "kwargs": {
+                    "column": "nulls",
+                    "min_value": 0.6500000000000001,
+                    "max_value": 2.6500000000000004,
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_median_to_be_between",
+            },
+            {
+                "kwargs": {
+                    "column": "nulls",
+                    "quantile_ranges": {
+                        "quantiles": [0.05, 0.25, 0.5, 0.75, 0.95],
+                        "value_ranges": [
+                            [-1.0, 1.0],
+                            [0.10000000000000009, 2.1],
+                            [1.2000000000000002, 3.2],
+                            [1.2000000000000002, 3.2],
+                            [2.3, 4.3],
+                        ],
+                    },
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_quantile_values_to_be_between",
+            },
+            {
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_be_unique",
+            },
+            {
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_not_be_null",
+            },
+            {
+                "kwargs": {"column": "naturals", "min_value": 0.0, "max_value": 2.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_min_to_be_between",
+            },
+            {
+                "kwargs": {"column": "naturals", "min_value": 6.0, "max_value": 8.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_max_to_be_between",
+            },
+            {
+                "kwargs": {"column": "naturals", "min_value": 3.0, "max_value": 5.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_mean_to_be_between",
+            },
+            {
+                "kwargs": {"column": "naturals", "min_value": 3.0, "max_value": 5.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_median_to_be_between",
+            },
+            {
+                "kwargs": {
+                    "column": "naturals",
+                    "quantile_ranges": {
+                        "quantiles": [0.05, 0.25, 0.5, 0.75, 0.95],
+                        "value_ranges": [
+                            [0.0, 2.0],
+                            [2.0, 4.0],
+                            [3.0, 5.0],
+                            [4.0, 6.0],
+                            [6.0, 8.0],
+                        ],
+                    },
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_quantile_values_to_be_between",
+            },
+        ],
+    )
+
+    # remove metadata to simplify assertions
+    observed_suite.meta = None
+    expected.meta = None
+
+    assert observed_suite == expected
+
+
+def test_SuiteBuilderProfiler_uses_selected_columns_on_pandas(pandas_dataset):
+    columns = ["naturals"]
+    observed_suite, evrs = SuiteBuilderProfiler().profile(
+        pandas_dataset, profiler_configuraton={"columns": columns}
+    )
+    assert isinstance(observed_suite, ExpectationSuite)
+
+    expected = ExpectationSuite(
+        "default",
+        data_asset_type="Dataset",
+        expectations=[
+            {
+                "expectation_type": "expect_column_to_exist",
+                "kwargs": {"column": "infinities"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_to_exist",
+                "kwargs": {"column": "nulls"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_to_exist",
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_table_row_count_to_be_between",
+                "kwargs": {"min_value": 6, "max_value": 7},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_table_column_count_to_equal",
+                "kwargs": {"value": 3},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_table_columns_to_match_ordered_list",
+                "kwargs": {"column_list": ["infinities", "nulls", "naturals"]},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_values_to_be_unique",
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_values_to_not_be_null",
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_min_to_be_between",
+                "kwargs": {"column": "naturals", "min_value": 0.0, "max_value": 2.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_max_to_be_between",
+                "kwargs": {"column": "naturals", "min_value": 6.0, "max_value": 8.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_mean_to_be_between",
+                "kwargs": {"column": "naturals", "min_value": 3.0, "max_value": 5.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_median_to_be_between",
+                "kwargs": {"column": "naturals", "min_value": 3.0, "max_value": 5.0},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_quantile_values_to_be_between",
+                "kwargs": {
+                    "column": "naturals",
+                    "quantile_ranges": {
+                        "quantiles": [0.05, 0.25, 0.5, 0.75, 0.95],
+                        "value_ranges": [
+                            [0.0, 2.0],
+                            [2.0, 4.0],
+                            [3.0, 5.0],
+                            [4.0, 6.0],
+                            [6.0, 8.0],
+                        ],
+                    },
+                },
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+        ],
+    )
+
+    # remove metadata to simplify assertions
+    observed_suite.meta = None
+    expected.meta = None
+    assert observed_suite == expected
+
+
+def test_SuiteBuilderProfiler_raises_error_on_bad_configuration(dataset):
+    print(dataset)
+    suite, evrs = SuiteBuilderProfiler().profile(dataset, profiler_configuraton={"columns": ["Name","PClass","Age","Sex","Survived","SexCode"]})
+    assert False
+
 
 
 def test_snapshot_SuiteBuilderProfiler_on_titanic():

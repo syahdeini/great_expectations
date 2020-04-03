@@ -79,6 +79,21 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
             dataset.expect_column_values_to_not_be_null(column, mostly=mostly_value)
 
     @classmethod
+    def _hideous_temporary_nan_fix(cls, value):
+        import numpy as np
+
+        if value is None:
+            return 0
+
+        try:
+            if np.isnan(value):
+                return 0
+        except TypeError:
+            pass
+
+        return value
+
+    @classmethod
     def _create_expectations_for_numeric_column(cls, dataset, column):
         cls._create_non_nullity_expectations(dataset, column)
 
@@ -86,18 +101,22 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
         dataset.expect_column_min_to_be_between(column, min_value=None, max_value=None, result_format="SUMMARY").result[
             "observed_value"]
         value = dataset.expect_column_min_to_be_between(column, min_value=value - 1, max_value=value + 1)
+        value = cls._hideous_temporary_nan_fix(value)
 
         value = \
         dataset.expect_column_max_to_be_between(column, min_value=None, max_value=None, result_format="SUMMARY").result[
             "observed_value"]
         value = dataset.expect_column_max_to_be_between(column, min_value=value - 1, max_value=value + 1)
+        value = cls._hideous_temporary_nan_fix(value)
 
         value = dataset.expect_column_mean_to_be_between(column, min_value=None, max_value=None,
                                                          result_format="SUMMARY").result["observed_value"]
+        value = cls._hideous_temporary_nan_fix(value)
         dataset.expect_column_mean_to_be_between(column, min_value=value - 1, max_value=value + 1)
 
         value = dataset.expect_column_median_to_be_between(column, min_value=None, max_value=None,
                                                            result_format="SUMMARY").result["observed_value"]
+        value = cls._hideous_temporary_nan_fix(value)
         dataset.expect_column_median_to_be_between(column, min_value=value - 1, max_value=value + 1)
 
         result = dataset.expect_column_quantile_values_to_be_between(
