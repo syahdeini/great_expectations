@@ -5,7 +5,32 @@ from great_expectations.profile.sample_expectations_dataset_profiler import (
 
 class SuiteBuilderProfiler(SampleExpectationsDatasetProfiler):
     """
-    This profiler helps build example suites for columns you care about.
+    This profiler helps build course expectations for columns you care about.
+
+    The goal of this profiler is to expedite the process of authoring an
+    expectation suite by building possibly relevant expections for columns that
+    you care about. You can then easily edit the suite and adjust or delete
+    these expectations to hone your new suite.
+
+    Ranges of acceptable values in the expectations created by this profiler
+    (for example, the min/max of the value in
+    expect_column_values_to_be_between) are created only to demonstrate the
+    functionality and should not be taken as the actual ranges. You should
+    definitely edit this course suite.
+
+    Configuration is optional, and if not provided, this profiler will create
+    expectations for all columns.
+
+    Configuration is a dictionary with a single `columns` key containing a list
+    of the column names you want course expectations created for.
+
+    For example, if you had a wide users table and you want expectations on
+    three columns, you'd do this:
+
+    suite = SuiteBuilderProfiler().profile(
+        dataset,
+        {"columns": ["id", "username", "address"]}
+    )
     """
 
     @classmethod
@@ -47,18 +72,5 @@ class SuiteBuilderProfiler(SampleExpectationsDatasetProfiler):
                     cls._create_expectations_for_string_column(dataset, column)
 
         expectation_suite = cls._build_column_description_metadata(dataset)
-
-        # TODO maybe change this metadata
-        #         expectation_suite.meta["notes"] = {
-        #             "format": "markdown",
-        #             "content": [
-        #                 """#### This is an _example_ suite
-        #
-        # - This suite was made by quickly glancing at 1000 rows of your data.
-        # - This is **not a production suite**. It is meant to show examples of expectations.
-        # - Because this suite was auto-generated using a very basic profiler that does not know your data like you do, many of the expectations may not be meaningful.
-        # """
-        #             ]
-        #         }
 
         return expectation_suite

@@ -444,7 +444,6 @@ def test_SuiteBuilderProfiler_raises_error_on_bad_configuration(dataset):
     assert False
 
 
-
 def test_snapshot_SuiteBuilderProfiler_on_titanic():
     """
     A snapshot regression test for SuiteBuilderProfiler.
