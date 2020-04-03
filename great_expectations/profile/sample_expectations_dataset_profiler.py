@@ -39,7 +39,6 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
 
         return column_type
 
-
     @classmethod
     def _get_column_cardinality_with_caching(cls, dataset, column_name, cache):
         column_cache_entry = cache.get(column_name)
@@ -233,25 +232,14 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
         if min_value is not None or max_value is not None:
             dataset.expect_column_values_to_be_between(column, min_value, max_value, parse_strings_as_datetimes=True)
 
-
     @classmethod
-    def _profile(cls, dataset):
-
+    def _profile(cls, dataset, configuration=None):
         dataset.set_default_expectation_argument("catch_exceptions", False)
-
-        value = dataset.expect_table_row_count_to_be_between(min_value=0, max_value=None).result["observed_value"]
-        dataset.expect_table_row_count_to_be_between(min_value=max(0, value-10), max_value=value+10)
-
+        dataset = cls._build_table_row_count_expectation(dataset, tolerance=0.1)
         dataset.set_config_value('interactive_evaluation', True)
+        dataset = cls._build_table_column_expectations(dataset)
 
         columns = dataset.get_table_columns()
-
-        dataset.expect_table_column_count_to_equal(len(columns))
-        dataset.expect_table_columns_to_match_ordered_list(columns)
-
-        meta_columns = {}
-        for column in columns:
-            meta_columns[column] = {"description": ""}
 
         column_cache = {}
         profiled_columns = {
@@ -283,11 +271,7 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
             cls._create_expectations_for_datetime_column(dataset, column)
             profiled_columns["datetime"].append(column)
 
-        expectation_suite = dataset.get_expectation_suite(suppress_warnings=True, discard_failed_expectations=True)
-        if not expectation_suite.meta:
-            expectation_suite.meta = {"columns": meta_columns, "notes": {""}}
-        else:
-            expectation_suite.meta["columns"] = meta_columns
+        expectation_suite = cls._build_column_description_metadata(dataset)
 
         expectation_suite.meta["notes"] = {
             "format": "markdown",
@@ -303,6 +287,40 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
 
         return expectation_suite
 
+# class Foo:
     @classmethod
-    def _build_suite(cls, dataset, columns_to_create_expectations_for):
-        raise NotImplementedError
+    def _build_table_row_count_expectation(cls, dataset, tolerance=0.1):
+        assert tolerance >= 0, "Tolerance must be greater than zero"
+        value = dataset.expect_table_row_count_to_be_between(
+            min_value=0, max_value=None
+        ).result["observed_value"]
+        min_value = max(0, int(value * (1 - tolerance)))
+        max_value = int(value * (1 + tolerance))
+        dataset.expect_table_row_count_to_be_between(
+            min_value=min_value, max_value=max_value
+        )
+        return dataset
+
+    @classmethod
+    def _build_table_column_expectations(cls, dataset):
+        columns = dataset.get_table_columns()
+        dataset.expect_table_column_count_to_equal(len(columns))
+        dataset.expect_table_columns_to_match_ordered_list(columns)
+        return dataset
+
+    @classmethod
+    def _build_column_description_metadata(cls, dataset):
+        columns = dataset.get_table_columns()
+        expectation_suite = dataset.get_expectation_suite(
+            suppress_warnings=True, discard_failed_expectations=False
+        )
+
+        meta_columns = {}
+        for column in columns:
+            meta_columns[column] = {"description": ""}
+        if not expectation_suite.meta:
+            expectation_suite.meta = {"columns": meta_columns, "notes": {""}}
+        else:
+            expectation_suite.meta["columns"] = meta_columns
+
+        return expectation_suite

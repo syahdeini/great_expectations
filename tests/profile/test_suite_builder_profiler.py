@@ -124,7 +124,7 @@ def test_snapshot_SuiteBuilderProfiler_on_titanic():
     previously stored file.
     """
     batch = ge.read_csv(file_relative_path(__file__, "../test_sets/Titanic.csv"))
-    suite, evrs = SuiteBuilderProfiler().build_suite(batch, columns=["Name","PClass","Age","Sex","Survived","SexCode"])
+    suite, evrs = SuiteBuilderProfiler().profile(batch, profiler_configuraton={"columns": ["Name","PClass","Age","Sex","Survived","SexCode"]})
 
     # Check to make sure SuiteBuilderProfiler is adding meta.columns with a single "description" field for each column
     assert "columns" in suite.meta

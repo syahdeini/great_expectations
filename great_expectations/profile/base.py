@@ -55,11 +55,11 @@ class DatasetProfiler(DataAssetProfiler):
         return expectation_suite
 
     @classmethod
-    def profile(cls, data_asset, run_id=None):
+    def profile(cls, data_asset, run_id=None, profiler_configuraton=None):
         if not cls.validate(data_asset):
             raise GreatExpectationsError("Invalid data_asset for profiler; aborting")
 
-        expectation_suite = cls._profile(data_asset)
+        expectation_suite = cls._profile(data_asset, configuration=profiler_configuraton)
 
         batch_kwargs = data_asset.batch_kwargs
         expectation_suite = cls.add_meta(expectation_suite, batch_kwargs)
@@ -73,24 +73,5 @@ class DatasetProfiler(DataAssetProfiler):
         return expectation_suite, validation_results
 
     @classmethod
-    def build_suite(cls, data_asset, columns=None, run_id=None):
-        # TODO factor this down since it's a copy of profile with a single different method
-        if not cls.validate(data_asset):
-            raise GreatExpectationsError("Invalid data_asset for profiler; aborting")
-
-        expectation_suite = cls._build_suite(data_asset, columns)
-
-        batch_kwargs = data_asset.batch_kwargs
-        expectation_suite = cls.add_meta(expectation_suite, batch_kwargs)
-        validation_results = data_asset.validate(expectation_suite, run_id=run_id, result_format="SUMMARY")
-        expectation_suite.add_citation(
-            comment=str(cls.__name__) + " added a citation based on the current batch.",
-            batch_kwargs=data_asset.batch_kwargs,
-            batch_markers=data_asset.batch_markers,
-            batch_parameters=data_asset.batch_parameters
-        )
-        return expectation_suite, validation_results
-
-    @classmethod
-    def _profile(cls, dataset):
+    def _profile(cls, dataset, configuration=None):
         raise NotImplementedError

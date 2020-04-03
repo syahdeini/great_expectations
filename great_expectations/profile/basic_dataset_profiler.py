@@ -119,7 +119,7 @@ class BasicDatasetProfiler(BasicDatasetProfilerBase):
     """
 
     @classmethod
-    def _profile(cls, dataset):
+    def _profile(cls, dataset, configuration=None):
         df = dataset
 
         df.set_default_expectation_argument("catch_exceptions", True)
