@@ -40,37 +40,82 @@ class SuiteBuilderProfiler(SampleExpectationsDatasetProfiler):
         dataset.set_config_value("interactive_evaluation", True)
         dataset = cls._build_table_column_expectations(dataset)
 
-        dataset_columns = dataset.get_table_columns()
-
         column_cache = {}
         columns_to_create_expectations_for = None
-        # TODO error handling on this config dict
+        blacklisted_expectations = None
+
         if configuration:
             columns_to_create_expectations_for = configuration.get("columns", None)
+            blacklisted_expectations = configuration.get(
+                "blacklisted_expectations", None
+            )
 
         if not columns_to_create_expectations_for:
-            columns_to_create_expectations_for = dataset_columns
+            columns_to_create_expectations_for = dataset.get_table_columns()
 
         for column in columns_to_create_expectations_for:
             cardinality = cls._get_column_cardinality_with_caching(
                 dataset, column, column_cache
             )
-            type = cls._get_column_type_with_caching(dataset, column, column_cache)
+            column_type = cls._get_column_type_with_caching(
+                dataset, column, column_cache
+            )
 
             if cardinality in ["two", "very few", "few"]:
                 cls._create_expectations_for_low_card_column(
                     dataset, column, column_cache
                 )
             elif cardinality in ["many", "very many", "unique"]:
-                # TODO reconsider unique assertion here. Maybe not on floats?
+                # TODO we will want to finesse the number and types of
+                #  expectations created here. The simple version is blacklisting
+                #  and the more complex version is desired per column type and
+                #  cardinality. This deserves more thought on configuration.
                 dataset.expect_column_values_to_be_unique(column)
-                if type in ["int", "float"]:
+
+                if column_type in ["int", "float"]:
                     cls._create_expectations_for_numeric_column(dataset, column)
-                elif type in ["datetime"]:
+                elif column_type in ["datetime"]:
                     cls._create_expectations_for_datetime_column(dataset, column)
-                elif type in ["string", "unknown"]:
+                elif column_type in ["string", "unknown"]:
                     cls._create_expectations_for_string_column(dataset, column)
+
+        if blacklisted_expectations:
+            dataset = _remove_table_expectations(dataset, blacklisted_expectations)
+            dataset = _remove_column_expectations(dataset, blacklisted_expectations)
 
         expectation_suite = cls._build_column_description_metadata(dataset)
 
         return expectation_suite
+
+
+def _remove_table_expectations(dataset, all_types_to_remove):
+    suite = dataset.get_expectation_suite(discard_failed_expectations=False)
+    table_expectations = suite.get_table_expectations()
+    removals = [
+        e.expectation_type
+        for e in table_expectations
+        if e.expectation_type in all_types_to_remove
+    ]
+    for expectation in removals:
+        try:
+            dataset.remove_expectation(expectation_type=expectation)
+        except ValueError:
+            pass
+    return dataset
+
+
+def _remove_column_expectations(dataset, all_types_to_remove):
+    suite = dataset.get_expectation_suite(discard_failed_expectations=False)
+    column_expectations = suite.get_column_expectations()
+    removals = [
+        e.expectation_type
+        for e in column_expectations
+        if e.expectation_type in all_types_to_remove
+    ]
+    for column in dataset.get_table_columns():
+        for exp in removals:
+            try:
+                dataset.remove_expectation(expectation_type=exp, column=column)
+            except ValueError:
+                pass
+    return dataset

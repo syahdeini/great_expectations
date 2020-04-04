@@ -119,20 +119,6 @@ from tests.test_utils import expectationSuiteValidationResultSchema
 #
 #     assert set(expectation_types) == expected_expectation_types
 
-def group_expectations_by_column(expectation_suite):
-    columns = {}
-
-    for expectation in expectation_suite.expectations:
-        if "column" in expectation.kwargs and isinstance(expectation.kwargs["column"], Hashable):
-            column = expectation.kwargs["column"]
-        else:
-            column = "_nocolumn"
-        if column not in columns:
-            columns[column] = []
-        columns[column].append(expectation)
-
-    return columns
-
 
 def test_SuiteBuilderProfiler_uses_all_columns_if_no_configuration_on_pandas(
     pandas_dataset,
@@ -342,9 +328,8 @@ def test_SuiteBuilderProfiler_uses_all_columns_if_no_configuration_on_pandas(
 
 
 def test_SuiteBuilderProfiler_uses_selected_columns_on_pandas(pandas_dataset):
-    columns = ["naturals"]
     observed_suite, evrs = SuiteBuilderProfiler().profile(
-        pandas_dataset, profiler_configuraton={"columns": columns}
+        pandas_dataset, profiler_configuraton={"columns": ["naturals"]}
     )
     assert isinstance(observed_suite, ExpectationSuite)
 
@@ -438,21 +423,81 @@ def test_SuiteBuilderProfiler_uses_selected_columns_on_pandas(pandas_dataset):
     assert observed_suite == expected
 
 
-def test_SuiteBuilderProfiler_raises_error_on_bad_configuration(dataset):
-    print(dataset)
-    suite, evrs = SuiteBuilderProfiler().profile(dataset, profiler_configuraton={"columns": ["Name","PClass","Age","Sex","Survived","SexCode"]})
-    assert False
+def test_SuiteBuilderProfiler_respects_blacklist_on_pandas(pandas_dataset):
+    observed_suite, evrs = SuiteBuilderProfiler().profile(
+        pandas_dataset,
+        profiler_configuraton={
+            "columns": ["naturals"],
+            "blacklisted_expectations": [
+                "expect_table_column_count_to_equal",
+                "expect_column_values_to_be_unique",
+                "expect_column_min_to_be_between",
+                "expect_column_max_to_be_between",
+                "expect_column_mean_to_be_between",
+                "expect_column_median_to_be_between",
+                "expect_column_quantile_values_to_be_between",
+            ],
+        },
+    )
+    assert isinstance(observed_suite, ExpectationSuite)
+
+    expected = ExpectationSuite(
+        "default",
+        data_asset_type="Dataset",
+        expectations=[
+            {
+                "expectation_type": "expect_column_to_exist",
+                "kwargs": {"column": "infinities"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_to_exist",
+                "kwargs": {"column": "nulls"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_column_to_exist",
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_table_row_count_to_be_between",
+                "kwargs": {"min_value": 6, "max_value": 7},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "expectation_type": "expect_table_columns_to_match_ordered_list",
+                "kwargs": {"column_list": ["infinities", "nulls", "naturals"]},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+            },
+            {
+                "kwargs": {"column": "naturals"},
+                "meta": {"SuiteBuilderProfiler": {"confidence": "very low"}},
+                "expectation_type": "expect_column_values_to_not_be_null",
+            },
+        ],
+    )
+
+    # remove metadata to simplify assertions
+    observed_suite.meta = None
+    expected.meta = None
+    assert observed_suite == expected
 
 
 def test_snapshot_SuiteBuilderProfiler_on_titanic():
     """
     A snapshot regression test for SuiteBuilderProfiler.
-    We are running the profiler on the Titanic dataset
-    and comparing the EVRs to ones retrieved from a
-    previously stored file.
+
+    We are running the profiler on the Titanic dataset and comparing the EVRs
+    to ones retrieved from a previously stored file.
     """
     batch = ge.read_csv(file_relative_path(__file__, "../test_sets/Titanic.csv"))
-    suite, evrs = SuiteBuilderProfiler().profile(batch, profiler_configuraton={"columns": ["Name","PClass","Age","Sex","Survived","SexCode"]})
+    suite, evrs = SuiteBuilderProfiler().profile(
+        batch,
+        profiler_configuraton={
+            "columns": ["Name", "PClass", "Age", "Sex", "Survived", "SexCode"]
+        },
+    )
 
     # Check to make sure SuiteBuilderProfiler is adding meta.columns with a single "description" field for each column
     assert "columns" in suite.meta
@@ -469,10 +514,10 @@ def test_snapshot_SuiteBuilderProfiler_on_titanic():
     #     json.dump(expectationSuiteValidationResultSchema.dump(evrs), file, indent=2)
 
     with open(
-            file_relative_path(
-                __file__, "../test_sets/expected_evrs_SuiteBuilderProfiler_on_titanic.json"
-            ),
-            "r",
+        file_relative_path(
+            __file__, "../test_sets/expected_evrs_SuiteBuilderProfiler_on_titanic.json"
+        ),
+        "r",
     ) as file:
         expected_evrs = expectationSuiteValidationResultSchema.load(
             json.load(file, object_pairs_hook=OrderedDict)

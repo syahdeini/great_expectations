@@ -579,6 +579,12 @@ class ExpectationSuite(object):
             return citations
         return self._sort_citations(citations)
 
+    def get_table_expectations(self):
+        return [e for e in self.expectations if e.expectation_type.startswith("expect_table_")]
+
+    def get_column_expectations(self):
+        return [e for e in self.expectations if e.expectation_type.startswith("expect_column_")]
+
     @staticmethod
     def _filter_citations(citations, filter_key):
         citations_with_bk = []

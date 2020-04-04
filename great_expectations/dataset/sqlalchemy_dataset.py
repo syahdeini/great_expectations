@@ -319,7 +319,13 @@ class SqlAlchemyDataset(MetaSqlAlchemyDataset):
 
         try:
             insp = reflection.Inspector.from_engine(self.engine)
-            self.columns = insp.get_columns(table_name, schema=schema)
+            columns = insp.get_columns(table_name, schema=schema)
+            for column in columns:
+                try:
+                    column["type"] = str(column["type"])
+                except KeyError:
+                    pass
+            self.columns = columns
         except KeyError:
             # we will get a KeyError for temporary tables, since
             # reflection will not find the temporary schema

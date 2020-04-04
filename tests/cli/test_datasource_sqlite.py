@@ -267,7 +267,7 @@ def test_cli_datasource_profile_with_datasource_arg(
         == "wow_a_datasource.default.main.titanic.BasicDatasetProfiler"
     )
     assert validation.success is False
-    assert len(validation.results) == 51
+    assert len(validation.results) == 42
 
     assert "Preparing column 1 of 7" in caplog.messages[0]
     assert len(caplog.messages) == 7
@@ -377,7 +377,7 @@ def test_cli_datasource_profile_with_no_datasource_args(
         == "wow_a_datasource.default.main.titanic.BasicDatasetProfiler"
     )
     assert validation.success is False
-    assert len(validation.results) == 51
+    assert len(validation.results) == 42
 
     assert "Preparing column 1 of 7" in caplog.messages[0]
     assert len(caplog.messages) == 7
@@ -511,7 +511,7 @@ def test_cli_datasource_profile_with_valid_data_asset_arg(
         == "wow_a_datasource.default.main.titanic.BasicDatasetProfiler"
     )
     assert validation.success is False
-    assert len(validation.results) == 51
+    assert len(validation.results) == 42
 
     assert "Preparing column 1 of 7" in caplog.messages[0]
     assert len(caplog.messages) == 7

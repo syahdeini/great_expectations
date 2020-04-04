@@ -141,6 +141,47 @@ def test_sqlalchemydataset_with_custom_sql(sa):
     assert result.success is False
 
 
+def test_column(sa):
+    engine = sa.create_engine("sqlite://")
+
+    data = pd.DataFrame(
+        {
+            "name": ["Frank", "Steve", "Jane", "Frank", "Michael"],
+            "age": [16, 21, 38, 22, 10],
+            "pet": ["fish", "python", "cat", "python", "frog"],
+        }
+    )
+    data.to_sql(name="test_sql_data", con=engine, index=False)
+    dataset = SqlAlchemyDataset("test_sql_data", engine=engine)
+    assert dataset.get_table_columns() == ["name", "age", "pet"]
+    assert dataset.columns == [
+        {
+            "name": "name",
+            "type": "TEXT",
+            "nullable": True,
+            "default": None,
+            "autoincrement": "auto",
+            "primary_key": 0,
+        },
+        {
+            "name": "age",
+            "type": "BIGINT",
+            "nullable": True,
+            "default": None,
+            "autoincrement": "auto",
+            "primary_key": 0,
+        },
+        {
+            "name": "pet",
+            "type": "TEXT",
+            "nullable": True,
+            "default": None,
+            "autoincrement": "auto",
+            "primary_key": 0,
+        },
+    ]
+
+
 def test_column_fallback(sa):
     engine = sa.create_engine('sqlite://')
 
@@ -152,9 +193,12 @@ def test_column_fallback(sa):
 
     data.to_sql(name='test_sql_data', con=engine, index=False)
     dataset = SqlAlchemyDataset('test_sql_data', engine=engine)
+    assert dataset.get_table_columns() == ["name", "age", "pet"]
+
     fallback_dataset = SqlAlchemyDataset('test_sql_data', engine=engine)
     # override columns attribute to test fallback
     fallback_dataset.columns = fallback_dataset.column_reflection_fallback()
+    assert fallback_dataset.get_table_columns() == ["name", "age", "pet"]
 
     # check that the results are the same for a few expectations
     assert (dataset.expect_column_to_exist('age') == 

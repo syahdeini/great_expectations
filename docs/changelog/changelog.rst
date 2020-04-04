@@ -2,6 +2,7 @@
 
 develop
 -----------------
+* Added two convenience methods to ExpectationSuite: get_table_expectations & get_column_expectations
 
 0.9.8
 -----------------
