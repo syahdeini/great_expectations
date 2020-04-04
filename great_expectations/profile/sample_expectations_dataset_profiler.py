@@ -306,7 +306,6 @@ class SampleExpectationsDatasetProfiler(BasicDatasetProfilerBase):
 
         return expectation_suite
 
-# class Foo:
     @classmethod
     def _build_table_row_count_expectation(cls, dataset, tolerance=0.1):
         assert tolerance >= 0, "Tolerance must be greater than zero"
