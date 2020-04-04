@@ -2,6 +2,7 @@
 
 develop
 -----------------
+* New SuiteBuilderProfiler that facilitates faster suite generation by allowing columns to be profiled
 * Added two convenience methods to ExpectationSuite: get_table_expectations & get_column_expectations
 
 0.9.8
